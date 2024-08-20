@@ -31,7 +31,8 @@
 
 
 ## 🗂️ ERD
-<img width="1132" alt="image" src="https://github.com/user-attachments/assets/9f51c088-80ce-4c79-a8c8-7dc4f7a4e36b">
+<img width="1130" alt="image" src="https://github.com/user-attachments/assets/a1398bfd-0000-401f-8e76-79d2e2bd7ca5">
+
 
 
 ## ⚙️ 설치 및 실행
