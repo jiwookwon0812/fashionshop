@@ -11,7 +11,6 @@ import zerobase.fashionshopapi.domain.constant.Authority;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Entity(name = "User")
 @Getter

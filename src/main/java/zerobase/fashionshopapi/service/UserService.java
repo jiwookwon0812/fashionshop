@@ -11,12 +11,16 @@ import zerobase.fashionshopapi.domain.User;
 import zerobase.fashionshopapi.dto.UserDto;
 import zerobase.fashionshopapi.repository.UserRepository;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final Set<String> tokenBlackList = new HashSet<>(); // 블랙리스트 저장할 set
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -40,5 +44,26 @@ public class UserService implements UserDetailsService {
     }
 
     // 로그인
+    public UserDto.LoginResponse login(UserDto.Login userDto) {
+        // 1. id 존재 여부 확인
+        User user = userRepository.findByEmail(userDto.getEmail())
+                .orElseThrow(() -> new UsernameNotFoundException(userDto.getEmail() + "user not found"));
 
+        // 2. id 와 비밀번호 일치하는지 확인
+        if (!passwordEncoder.matches(userDto.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Wrong password");
+        }
+
+        return new UserDto.LoginResponse(user.getEmail(), user.getUsername(), user.getAuthority());
+    }
+
+    // 로그아웃
+    public void logout(String token) {
+        tokenBlackList.add(token);
+        log.info("Token added to blacklist {}", token);
+    }
+
+    public boolean isTokenBlackListed(String token) {
+        return tokenBlackList.contains(token);
+    }
 }
