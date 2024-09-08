@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import zerobase.fashionshopapi.dto.UserDto;
+import zerobase.fashionshopapi.security.JwtAuthenticationFilter;
 import zerobase.fashionshopapi.security.TokenProvider;
 import zerobase.fashionshopapi.service.UserService;
 
@@ -19,6 +20,7 @@ public class AuthController {
     private final UserService userService;
     private final TokenProvider tokenProvider;
     private final HttpServletRequest httpServletRequest; // 현재 요청 정보 (현재 로그인한 정보?)
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     // 회원가입
     @PostMapping("/signup")
@@ -36,22 +38,5 @@ public class AuthController {
         return ResponseEntity.ok(token);
     }
 
-    // 로그아웃
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout() {
-        String token = getTokenFromRequest(httpServletRequest);
-        userService.logout(token);
-        return ResponseEntity.ok("User logged out successfully");
-    }
 
-    // 현재 요청 정보에서 jwt 토큰 추출
-    private String getTokenFromRequest(HttpServletRequest request) {
-        // Authorization 헤더에서 토큰 값 추출
-        String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-            // "Bearer " 이후의 실체 토큰만 추출
-        }
-        return null;
-    }
 }

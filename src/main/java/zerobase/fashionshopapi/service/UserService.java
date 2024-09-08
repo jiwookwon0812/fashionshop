@@ -20,7 +20,6 @@ import java.util.Set;
 public class UserService implements UserDetailsService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final Set<String> tokenBlackList = new HashSet<>(); // 블랙리스트 저장할 set
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -57,13 +56,4 @@ public class UserService implements UserDetailsService {
         return new UserDto.LoginResponse(user.getEmail(), user.getUsername(), user.getAuthority());
     }
 
-    // 로그아웃
-    public void logout(String token) {
-        tokenBlackList.add(token);
-        log.info("Token added to blacklist {}", token);
-    }
-
-    public boolean isTokenBlackListed(String token) {
-        return tokenBlackList.contains(token);
-    }
 }

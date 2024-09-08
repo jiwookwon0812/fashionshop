@@ -43,7 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private String getJwtFromRequest(HttpServletRequest request) {
+    public String getJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader(TOKEN_HEADER);
         log.info("Bearer token: {}", bearerToken);
         // 현재 들어온 http 요청에서 토큰의 헤더값 추출

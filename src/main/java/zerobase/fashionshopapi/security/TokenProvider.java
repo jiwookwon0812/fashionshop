@@ -11,10 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import zerobase.fashionshopapi.domain.User;
 import zerobase.fashionshopapi.domain.constant.Authority;
 import zerobase.fashionshopapi.repository.UserRepository;
 import zerobase.fashionshopapi.service.UserService;
@@ -31,7 +29,7 @@ public class TokenProvider {
     private final UserService userService;
     private final UserRepository userRepository;
 
-    @Value("{jwt.secret}")
+    @Value("${jwt.secret}")
     private String secretKey;
 
     // jwt 의 세 부분 : header, payload, signature
@@ -78,10 +76,6 @@ public class TokenProvider {
             log.warn("Token is empty");
             return false;
         }
-        if (userService.isTokenBlackListed(token)) {
-            log.warn("Token is blacklisted");
-            return false;
-        }
         try {
             var claims = parseClaims(token);
             if (claims.getExpiration().before(new Date())) {
@@ -107,10 +101,15 @@ public class TokenProvider {
         } catch (ExpiredJwtException e) { // 만료된 토큰인 경우
             log.error("Expired jwt token : {}", e.getMessage());
             return e.getClaims(); // 만료된 토큰이어도 클레임 객체 반환
-        } catch (Exception e) { // 이외 잘못된 서명이 있는 토큰이거나 형식이 잘못된 토큰 등등..
-            // jwt 토큰 유효 x 때
-            log.error("Invalid token : {}", e.getMessage());
-            throw new RuntimeException("Invalid token");
+        } catch (io.jsonwebtoken.MalformedJwtException e) { // 잘못된 형식의 토큰인 경우
+            log.error("Malformed JWT token: {}", e.getMessage());
+            throw new RuntimeException("Invalid token format");
+        } catch (io.jsonwebtoken.SignatureException e) { // 잘못된 서명인 경우
+            log.error("Invalid JWT signature: {}", e.getMessage());
+            throw new RuntimeException("Invalid token signature");
+        } catch (IllegalArgumentException e) { // 잘못된 인자 입력인 경우
+            log.error("Illegal argument: {}", e.getMessage());
+            throw new RuntimeException("Illegal argument provided for token");
         }
     }
 }

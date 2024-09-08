@@ -1,6 +1,7 @@
 package zerobase.fashionshopapi.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,11 @@ class AuthControllerTest2 {
     @Autowired
     private UserRepository userRepository;
 
+    @BeforeEach
+    public void setUp() {
+        userRepository.deleteAll(); // 모든 사용자 데이터 삭제
+    }
+
     @Test
     @DisplayName("로그인 테스트 - 유효한 입력")
     void testLogin_ValidInput() throws Exception {
@@ -48,16 +54,5 @@ class AuthControllerTest2 {
                         .content(objectMapper.writeValueAsString(loginRequest)))
                 .andExpect(status().isOk())
                 .andExpect(content().string("mock-token"));
-    }
-
-    @Test
-    @DisplayName("로그아웃 테스트")
-    void testLogout() throws Exception {
-        // Given: 로그아웃을 위한 토큰 설정
-        String token = "valid-jwt-token";
-        mockMvc.perform(post("/logout")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(content().string("User logged out successfully"));
     }
 }
