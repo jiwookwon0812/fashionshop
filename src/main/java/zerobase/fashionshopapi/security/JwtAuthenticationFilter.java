@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -18,6 +19,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final TokenProvider tokenProvider;
+    private final RedisTemplate<String, Object> redisTemplate;
     private static final String TOKEN_HEADER = "Authorization";
     private static final String TOKEN_BEARER_PREFIX = "Bearer ";
 
@@ -31,6 +33,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (jwt != null && tokenProvider.validateToken(jwt)) {
             log.info("Token successfully validated");
 
+            // 3. Redis 에서 토큰 검증
+            String email = tokenProvider.getEmail(jwt);
+            String token = (String) redisTemplate.opsForValue().get("JWT:" + email);
+            if (token == null || !token.equals(jwt)) {
+                log.warn("Token not found or does not match in Redis.");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("Invalid or expired JWT token");
+                return; // 필터 체인 진행 중단
+            }
+
             // 3. 객체 생성
             Authentication auth = tokenProvider.getAuthentication(jwt);
             log.info("Authentication: {}", auth);
@@ -38,9 +50,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
         } else {
             log.warn("Invalid token");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Invalid or expired JWT token");
+
+            return; // 필터 체인 중단
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // /signup, /login 경로에서는 필터가 적용되지 않도록 설정
+        return path.equals("/signup") || path.equals("/login");
     }
 
     public String getJwtFromRequest(HttpServletRequest request) {

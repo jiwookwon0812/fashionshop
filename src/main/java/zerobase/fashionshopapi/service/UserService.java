@@ -11,8 +11,6 @@ import zerobase.fashionshopapi.domain.User;
 import zerobase.fashionshopapi.dto.UserDto;
 import zerobase.fashionshopapi.repository.UserRepository;
 
-import java.util.HashSet;
-import java.util.Set;
 
 @Slf4j
 @Service
