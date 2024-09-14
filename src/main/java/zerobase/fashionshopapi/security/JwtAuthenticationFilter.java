@@ -6,10 +6,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import zerobase.fashionshopapi.service.UserService;
 
 import java.io.IOException;
 
@@ -18,8 +22,10 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final TokenProvider tokenProvider;
+    private final RedisTemplate<String, Object> redisTemplate;
     private static final String TOKEN_HEADER = "Authorization";
     private static final String TOKEN_BEARER_PREFIX = "Bearer ";
+    private final UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -27,20 +33,42 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String jwt = getJwtFromRequest(request);
         log.info("Token from request: {}", jwt);
 
-        // 2. 토큰 유효성 검증
-        if (jwt != null && tokenProvider.validateToken(jwt)) {
-            log.info("Token successfully validated");
+        try {
+            // 2. 토큰 유효성 검증
+            if (jwt != null && tokenProvider.validateToken(jwt)) {
+                log.info("Token successfully validated");
 
-            // 3. 객체 생성
-            Authentication auth = tokenProvider.getAuthentication(jwt);
-            log.info("Authentication: {}", auth);
+                // 3. Redis 에서 토큰 검증
+                String email = tokenProvider.getEmail(jwt);
+                String token = (String) redisTemplate.opsForValue().get("JWT:" + email);
+                if (token == null || !token.equals(jwt)) {
+                    log.warn("Token not found or does not match in Redis.");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("Invalid or expired JWT token");
+                    return; // 필터 체인 진행 중단
+                }
 
-            SecurityContextHolder.getContext().setAuthentication(auth);
-        } else {
-            log.warn("Invalid token");
+                // 3. 사용자 정보 조회 후 인증 객체 생성
+                UserDetails userDetails = userService.loadUserByUsername(email);
+                log.info("Authentication: {}", userDetails.getUsername());
+
+                Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+
+            } catch (Exception e) {
+                log.warn("Invalid token: {}", e.getMessage());
+                // 예외가 발생해도 filterChain을 계속 진행
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // /signup, /login 경로에서는 필터가 적용되지 않도록 설정
+        return path.equals("/signup") || path.equals("/login");
     }
 
     public String getJwtFromRequest(HttpServletRequest request) {
