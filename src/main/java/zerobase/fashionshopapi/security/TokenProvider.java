@@ -26,8 +26,6 @@ import java.util.Date;
 public class TokenProvider {
     private static final String KEY_ROLES = "roles";
     private static final long TOKEN_EXPIRE_TIME = 1000 * 60 * 60 * 5;
-    private final UserService userService;
-    private final UserRepository userRepository;
 
     @Value("${jwt.secret}")
     private String secretKey;
@@ -60,12 +58,6 @@ public class TokenProvider {
                 .compact();
     }
 
-    public Authentication getAuthentication(String token) {
-        // 인증 객체 생성
-        UserDetails userDetails = userService.loadUserByUsername(getEmail(token));
-        log.info("Authenticated user: {}", userDetails.getUsername());
-        return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-    }
 
     public String getEmail(String token) {
         return parseClaims(token).getSubject();
