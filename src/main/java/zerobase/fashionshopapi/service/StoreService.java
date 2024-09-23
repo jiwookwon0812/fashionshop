@@ -7,6 +7,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import zerobase.fashionshopapi.domain.Store;
 import zerobase.fashionshopapi.domain.User;
+import zerobase.fashionshopapi.domain.constant.StoreStyle;
 import zerobase.fashionshopapi.dto.StoreDto;
 import zerobase.fashionshopapi.repository.StoreRepository;
 import zerobase.fashionshopapi.repository.UserRepository;
@@ -21,7 +22,7 @@ public class StoreService {
     private final UserRepository userRepository;
 
     // 상점 등록
-    public void registerStore(StoreDto.registerDto storeDto, Authentication authentication) {
+    public void registerStore(StoreDto storeDto, Authentication authentication) {
         String email = authentication.getName(); // 이메일 가져오기
         // generateToken 메서드에서 토큰 빌드 시 setSubject(email) 을 통해
         // 토큰의 주체(Principal)을 이메일로 설정했기 때문에 이메일 반환
@@ -39,7 +40,7 @@ public class StoreService {
     }
 
     // 상점 수정
-    public void updateStore(StoreDto.updateDto storeDto, String storeName, Authentication authentication) {
+    public void updateStore(StoreDto storeDto, String storeName, Authentication authentication) {
         String email = authentication.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User is not found"));
@@ -76,20 +77,23 @@ public class StoreService {
     }
 
     // 상점 조회
-    public List<StoreDto.updateDto> searchStores(String storeName) {
-        if (storeName == null) {
+    public List<StoreDto> searchStores(String storeName, StoreStyle storeStyle) {
+        if (storeName == null && storeStyle == null) {
             List<Store> allStores = storeRepository.findAll();
-            List<StoreDto.updateDto> allDtoList = allStores.stream()
-                    .map(e -> new StoreDto.updateDto(e.getStorename(), e.getStorestyle()))
+            List<StoreDto> allDtoList = allStores.stream()
+                    .map(e -> new StoreDto(e.getStorename(), e.getStorestyle()))
                     .toList();
             return allDtoList;
-        } else {
+        } else if (storeName != null && storeStyle == null){
             List<Store> stores = storeRepository.findByStorename(storeName);
-            List<StoreDto.updateDto> storeList = stores.stream()
-                    .map(e -> new StoreDto.updateDto(e.getStorename(), e.getStorestyle()))
+            List<StoreDto> storeList = stores.stream()
+                    .map(e -> new StoreDto(e.getStorename(), e.getStorestyle()))
                     .toList();
             return storeList;
+        } else if (storeName == null && storeStyle != null) {
+            List<Store> stores = storeRepository.findByStoreStyle(storeStyle);
         }
+        return null;
     }
 
 }

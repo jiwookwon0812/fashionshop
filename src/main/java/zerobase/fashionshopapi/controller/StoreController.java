@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import zerobase.fashionshopapi.domain.constant.StoreStyle;
 import zerobase.fashionshopapi.dto.StoreDto;
 import zerobase.fashionshopapi.service.StoreService;
 
@@ -20,14 +21,14 @@ public class StoreController {
 
     // 상점 등록
     @PostMapping("/register")
-    public ResponseEntity<?> registerStore(@RequestBody @Valid StoreDto.registerDto storeDto, Authentication authentication) {
+    public ResponseEntity<?> registerStore(@RequestBody @Valid StoreDto storeDto, Authentication authentication) {
         storeService.registerStore(storeDto, authentication);
         return ResponseEntity.ok("Store is registered successfully");
     }
 
     // 상점 수정 (본인
     @PutMapping("/update/{storeName}")
-    public ResponseEntity<?> updateStore(@RequestBody StoreDto.updateDto storeDto, @PathVariable String storeName, Authentication authentication) {
+    public ResponseEntity<?> updateStore(@RequestBody StoreDto storeDto, @PathVariable String storeName, Authentication authentication) {
         storeService.updateStore(storeDto, storeName, authentication);
         return ResponseEntity.ok("Store is updated successfully");
     }
@@ -42,9 +43,10 @@ public class StoreController {
 
 
     // 상점 조회
-    @GetMapping
-    public List<StoreDto.updateDto> searchStores(@RequestParam(required = false) String storeName) {
-        return storeService.searchStores(storeName);
+    @GetMapping("/{storeStyle}")
+    public List<StoreDto> searchStores(@RequestParam(required = false) String storeName,
+                                       @PathVariable(required = false) StoreStyle storeStyle) {
+        return storeService.searchStores(storeName, storeStyle);
     }
 
 }
